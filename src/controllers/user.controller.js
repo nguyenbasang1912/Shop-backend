@@ -1,11 +1,7 @@
 const { asyncHandler } = require("../utils/errorHandle");
 const { StatusCodes, ReasonPhrases } = require("http-status-codes");
 const { SuccessResponse } = require("../utils/responseHandle");
-const {
-  registerUser,
-  loginUser,
-  getUserInfo,
-} = require("../services/user.service");
+const UserService = require("../services/user.service");
 
 const register = asyncHandler(async (req, res) => {
   const { email, password, name } = req.body;
@@ -13,7 +9,7 @@ const register = asyncHandler(async (req, res) => {
   new SuccessResponse({
     status: StatusCodes.CREATED,
     message: "User created successfully!",
-    data: await registerUser(email, password, name),
+    data: await UserService.registerUser(email, password, name),
   }).json(res);
 });
 
@@ -23,7 +19,7 @@ const login = asyncHandler(async (req, res) => {
   new SuccessResponse({
     status: StatusCodes.OK,
     message: "User logged in successfully!",
-    data: await loginUser(email, password),
+    data: await UserService.loginUser(email, password),
   }).json(res);
 });
 
@@ -32,7 +28,16 @@ const getUser = asyncHandler(async (req, res) => {
   new SuccessResponse({
     status: StatusCodes.OK,
     message: "User info fetched successfully!",
-    data: await getUserInfo(userId),
+    data: await UserService.getUserInfo(userId),
+  }).json(res);
+});
+
+const renewTokens = asyncHandler(async (req, res) => {
+  const { refreshToken } = req.body;
+  new SuccessResponse({
+    status: StatusCodes.CREATED,
+    message: "Tokens renewed successfully!",
+    data: await UserService.renewTokens(refreshToken),
   }).json(res);
 });
 
@@ -40,4 +45,5 @@ module.exports = {
   register,
   login,
   getUser,
+  renewTokens,
 };

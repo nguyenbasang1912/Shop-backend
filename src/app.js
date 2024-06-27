@@ -14,6 +14,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
+app.get("/test", (req, res) => {
+  res.send("Hello World!");
+});
 app.use("", require("./routes"));
 
 app.use(notFoundHandler);

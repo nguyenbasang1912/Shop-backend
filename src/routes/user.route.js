@@ -6,5 +6,6 @@ const { verifyUser } = require("../middlewares/auth.middleware");
 router.post("/register", UserController.register);
 router.post("/login", UserController.login);
 router.post("/", verifyUser, UserController.getUser);
+router.post("/renewTokens", UserController.renewTokens);
 
 module.exports = router;
