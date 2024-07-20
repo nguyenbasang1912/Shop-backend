@@ -6,6 +6,8 @@ const { verifyUser } = require("../middlewares/auth.middleware");
 router.post("/register", UserController.register);
 router.post("/login", UserController.login);
 router.post("/", verifyUser, UserController.getUser);
-router.post("/renewTokens", UserController.renewTokens);
+router.post("/renew-tokens", UserController.renewTokens);
+router.post("/favorite", verifyUser, UserController.updateFavorite);
+router.delete("/favorite/:id", verifyUser, UserController.deleteFavorite);
 
 module.exports = router;

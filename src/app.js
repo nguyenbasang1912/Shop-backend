@@ -17,7 +17,7 @@ app.use(morgan("dev"));
 app.get("/test", (req, res) => {
   res.send("Hello World!");
 });
-app.use("", require("./routes"));
+app.use("/api", require("./routes"));
 
 app.use(notFoundHandler);
 app.use(errorHandler);

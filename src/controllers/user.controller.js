@@ -41,9 +41,33 @@ const renewTokens = asyncHandler(async (req, res) => {
   }).json(res);
 });
 
+const updateFavorite = asyncHandler(async (req, res) => {
+  const { userId } = req.user;
+  const { productId } = req.body;
+
+  new SuccessResponse({
+    status: StatusCodes.OK,
+    message: "Favorite item updated successfully!",
+    data: await UserService.updateFavorite(userId, productId),
+  }).json(res);
+})
+
+const deleteFavorite = asyncHandler(async (req, res) => {
+  const { userId } = req.user;
+  const { id } = req.params;
+
+  new SuccessResponse({
+    status: StatusCodes.OK,
+    message: "Favorite item deleted successfully!",
+    data: await UserService.deleteFavorite(userId, id),
+  }).json(res);
+});
+
 module.exports = {
   register,
   login,
   getUser,
   renewTokens,
+  updateFavorite,
+  deleteFavorite,
 };

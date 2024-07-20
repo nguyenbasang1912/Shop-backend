@@ -10,6 +10,7 @@ const {
   findByRefreshToken,
 } = require("./keystore.service");
 const { decodedToken } = require("../utils/token");
+const { Types } = require("mongoose");
 
 const registerUser = async (email, password, name) => {
   if (!email || !password || !name) {
@@ -59,7 +60,7 @@ const loginUser = async (email, password) => {
     });
   }
 
-  const tokens = generateTokens(user._id, user.email);
+  const tokens = generateTokens(user._id, user.email, user.role);
   const keystore = createKeystore({
     userId: user._id,
     refreshToken: tokens.refreshToken,
@@ -82,14 +83,15 @@ const loginUser = async (email, password) => {
   };
 };
 
-const generateTokens = (userId, email) => {
+const generateTokens = (userId, email, role) => {
   const payload = {
     userId,
     email,
+    role,
   };
 
   const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
-    expiresIn: 30,
+    expiresIn: "5h",
   });
 
   const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
@@ -103,7 +105,9 @@ const generateTokens = (userId, email) => {
 };
 
 const getUserInfo = async (userId) => {
-  const user = await User.findById(userId);
+  const user = await User.findById(userId).select(
+    "name email gender phone favorites address avatar"
+  );
 
   if (!user) {
     throw new ErrorResponse({
@@ -158,7 +162,7 @@ const renewTokens = async (refreshToken) => {
     });
   }
 
-  const tokens = generateTokens(user._id, user.email);
+  const tokens = generateTokens(user._id, user.email, user.role);
 
   await keystore.updateOne({
     $set: {
@@ -172,9 +176,45 @@ const renewTokens = async (refreshToken) => {
   return tokens;
 };
 
+const updateFavorite = async (userId, productId) => {
+  const user = await User.findOneAndUpdate(
+    { _id: userId },
+    {
+      $addToSet: {
+        favorites: productId,
+      },
+    },
+    {
+      new: true,
+    }
+  ).select("favorites");
+  return user.populate(
+    "favorites",
+    "product_name product_price product_thumbnail saleOff"
+  );
+};
+
+const deleteFavorite = async (userId, productId) => {
+  const user = await User.findOneAndUpdate(
+    { _id: userId },
+    {
+      $pull: { favorites: productId },
+    },
+    {
+      new: true,
+    }
+  ).select("favorites");
+  return user.populate(
+    "favorites",
+    "product_name product_price product_thumbnail saleOff"
+  );
+};
+
 module.exports = {
   registerUser,
   loginUser,
   getUserInfo,
   renewTokens,
+  updateFavorite,
+  deleteFavorite,
 };
