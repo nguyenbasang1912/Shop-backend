@@ -63,6 +63,64 @@ const deleteFavorite = asyncHandler(async (req, res) => {
   }).json(res);
 });
 
+const logoutUser = asyncHandler(async (req, res) => {
+  
+  new SuccessResponse({
+    status: StatusCodes.OK,
+    message: "User logged out successfully!",
+    data: await UserService.logoutUser(req.user.userId),
+  }).json(res);
+})
+
+const createAddress = asyncHandler(async (req, res) => {
+
+  new SuccessResponse({
+    status: StatusCodes.CREATED,
+    message: "Address created successfully!",
+    data: await UserService.createNewAddress(req.user.userId, req.body),
+  }).json(res)
+});
+
+const updateAddress = asyncHandler(async (req, res) => {
+
+  new SuccessResponse({
+    status: StatusCodes.OK,
+    message: "Address updated successfully!",
+    data: await UserService.updateAddress(req.user.userId, req.params.id, req.body),
+  }).json(res)
+})
+
+const deleteAddress = asyncHandler(async (req, res) => {
+  const { userId } = req.user;
+  const { id } = req.params;
+
+  new SuccessResponse({
+    status: StatusCodes.OK,
+    message: "Address deleted successfully!",
+    data: await UserService.deleteAddress(userId, id),
+  }).json(res)
+})
+
+const editUser = asyncHandler(async (req, res) => {
+  const {type, payload} = req.body
+  const avatar = req.avatar
+
+  let action = {
+    type,
+    payload,
+  }
+
+  if (avatar) {
+    action.payload = avatar
+  }
+
+  new SuccessResponse({
+    status: StatusCodes.OK,
+    message: "User updated successfully!",
+    data: await UserService.editUser(req.user.userId, action),
+  }).json(res)
+})
+
 module.exports = {
   register,
   login,
@@ -70,4 +128,9 @@ module.exports = {
   renewTokens,
   updateFavorite,
   deleteFavorite,
+  logoutUser,
+  createAddress,
+  updateAddress,
+  deleteAddress,
+  editUser
 };

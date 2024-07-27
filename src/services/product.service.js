@@ -122,7 +122,7 @@ const queryProducts = async (body) => {
 const getDetailProduct = async (id) => {
   const product = await Product.findOne({ _id: id })
     .select(
-      "product_name product_description product_price product_images stock product_sizes product_colors saleOff category_id"
+      "product_name product_description product_price product_images stock product_sizes product_colors saleOff category_id rate"
     )
     .lean();
   return {

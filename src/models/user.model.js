@@ -36,9 +36,9 @@ const userSchema = new Schema(
     address: {
       type: [
         {
-          lat: Number,
-          long: Number,
           name: String,
+          phone: String,
+          address: String,
         },
       ],
       default: [],
@@ -49,10 +49,16 @@ const userSchema = new Schema(
       default: "user",
     },
     favorites: {
-      type: [
-        {type: Schema.Types.ObjectId, ref: 'Product'}
-      ],
+      type: [{ type: Schema.Types.ObjectId, ref: "Product" }],
       default: [],
+    },
+    default_address: {
+      type: {
+        name: String,
+        phone: String,
+        address: String,
+      },
+      default: {},
     },
   },
   {

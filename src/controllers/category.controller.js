@@ -62,7 +62,7 @@ const getChildCategoriesByParent = asyncHandler(async (req, res, next) => {
     status: StatusCodes.OK,
     message: "Child categories fetched successfully!",
     data: await CategoryService.findAllChildCategoriesByParentId(req.params.parentId),
-  })
+  }).json(res)
 })
 
 module.exports = {

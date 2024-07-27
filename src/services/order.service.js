@@ -5,16 +5,21 @@ const { cleanObject } = require("../utils");
 const { ErrorResponse } = require("../utils/responseHandle");
 const CartService = require("./cart.service");
 
-const createNewOrder = async ({ user, promo, address, payment }) => {
+const createNewOrder = async ({ user, promo, address, payment, phone }) => {
   const cart = await CartService.removeProductBeforeOrderIfOutOfStock(
     user.userId
   );
 
   const caculate = await CartService.estimateAmount(user.userId, promo);
 
-  const selectedProducts = cart.products.filter(
-    (product) => product.is_checked
-  );
+  const selectedProducts = cart.products
+    .filter((product) => product.is_checked)
+    .map((product) => {
+      return {
+        ...product,
+        isComment: false,
+      };
+    });
 
   if (!caculate || selectedProducts.length <= 0) {
     throw new ErrorResponse({
@@ -24,12 +29,14 @@ const createNewOrder = async ({ user, promo, address, payment }) => {
   }
 
   const orderInfo = {
-    user_id: user._id,
+    user_id: user.userId,
     products: selectedProducts,
     promo_code: promo,
     shipping_address: address,
     status: "pending",
     payment_method: payment,
+    total_amount: caculate.amountAfterUsePromo,
+    phone: phone
   };
 
   const order = await Order.create(orderInfo)
@@ -82,24 +89,37 @@ const updateState = async (orderId, state) => {
     });
   }
 
+  if (state === "delivered") {
+    order.products = order.products.map((product) => {
+      return { ...product, isComment: true };
+    });
+  }
+
   order.status = state;
 
   return await order.save();
 };
 
 const getOrderById = async (orderId) => {
-  return await Order.findById(orderId).populate("user_id", "username");
+  console.log("Run");
+  return await Order.findById(orderId);
 };
 
 const getOrdersByUserId = async (userId) => {
   if (!userId) {
     throw new Error("User ID is required");
   }
-  return await Order.find({ user_id: userId }).populate("user_id", "username");
+
+  const orders = await Order.find({ user_id: userId }).populate(
+    "products.productId",
+    "product_name product_thumbnail saleOff product_price"
+  );
+
+  return orders;
 };
 
 const getAllOrders = async () => {
-  return await Order.find().populate("user_id", "username");
+  return await Order.find();
 };
 
 module.exports = {

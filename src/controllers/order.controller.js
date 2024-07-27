@@ -3,8 +3,7 @@ const OrderService = require("../services/order.service");
 const { SuccessResponse } = require("../utils/responseHandle");
 
 const createOrder = asyncHandler(async (req, res, next) => {
-  const { promo, address, payment } = req.body;
-  const user = req.user
+  const { promo, address, payment, phone } = req.body;
   new SuccessResponse({
     status: 200,
     message: "Order created successfully!",
@@ -13,6 +12,7 @@ const createOrder = asyncHandler(async (req, res, next) => {
       promo,
       address,
       payment,
+      phone
     }),
   }).json(res);
 });

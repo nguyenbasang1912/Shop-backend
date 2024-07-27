@@ -20,7 +20,7 @@ const addToCart = asyncHandler(async (req, res, next) => {
 });
 
 const updateCartItemQuantity = asyncHandler(async (req, res, next) => {
-  const { productId, quantity, is_checked } = req.body;
+  const { productId, quantity, is_checked, cartItemId } = req.body;
   const user = req.user;
   new SuccessResponse({
     status: 200,
@@ -30,12 +30,13 @@ const updateCartItemQuantity = asyncHandler(async (req, res, next) => {
       quantity,
       productId,
       is_checked,
+      cartItemId,
     }),
   }).json(res);
 });
 
 const removeCartItem = asyncHandler(async (req, res, next) => {
-  const { productId } = req.body;
+  const { cartItemId } = req.body;
   const user = req.user;
 
   new SuccessResponse({
@@ -43,7 +44,7 @@ const removeCartItem = asyncHandler(async (req, res, next) => {
     message: "Cart item removed successfully!",
     data: await CartService.deleteProductInCart({
       userId: user.userId,
-      productId,
+      cartItemId,
     }),
   }).json(res);
 });

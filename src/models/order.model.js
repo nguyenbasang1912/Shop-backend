@@ -10,6 +10,7 @@ const orderSchema = new Schema(
           quantity: Number,
           size: { type: String, required: true },
           color: { type: String, required: true },
+          isComment: { type: Boolean, required: true },
         },
       ],
       required: true,
@@ -21,7 +22,9 @@ const orderSchema = new Schema(
     },
     shipping_address: {
       type: String,
-      required: true,
+    },
+    phone: {
+      type: String,
     },
     promo_code: {
       type: String,
@@ -32,6 +35,7 @@ const orderSchema = new Schema(
       required: true,
       default: "cash",
     },
+    total_amount: Number,
   },
   {
     timestamps: true,

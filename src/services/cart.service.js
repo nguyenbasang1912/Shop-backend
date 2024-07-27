@@ -76,12 +76,9 @@ const addToCart = async ({ userId, productId, quantity = 1, color, size }) => {
   );
 };
 
-const updateQuantity = async ({
-  userId,
-  productId,
-  quantity,
-  is_checked = false,
-}) => {
+const updateQuantity = async (body) => {
+  const { userId, productId, cartItemId, quantity, is_checked = false } = body;
+
   const cart = await Cart.findOne({ userId });
 
   if (!cart) {
@@ -112,7 +109,7 @@ const updateQuantity = async ({
   }
 
   if (quantity <= 0) {
-    return await deleteProductInCart({ userId, productId });
+    return await deleteProductInCart({ userId, cartItemId });
   }
 
   if (quantity > existProduct.stock) {
@@ -130,16 +127,15 @@ const updateQuantity = async ({
   );
 };
 
-const deleteProductInCart = async ({ userId, productId }) => {
+const deleteProductInCart = async ({ userId, cartItemId }) => {
   const cart = await Cart.findOneAndUpdate(
     {
-      userId: userId,
-      "products.productId": productId,
+      userId,
     },
     {
       $pull: {
         products: {
-          productId,
+          _id: cartItemId,
         },
       },
     },
@@ -149,28 +145,22 @@ const deleteProductInCart = async ({ userId, productId }) => {
     "product_name product_thumbnail saleOff product_price"
   );
 
-  console.log(userId, cart, productId)
-  return cart
+  return cart;
 };
 
 const getCartByUserId = async (userId) => {
-  const cart = await Cart.findOne({ userId })
-    .populate(
-      "products.productId",
-      "product_name product_thumbnail product_price"
-    )
-    .lean();
+  const cart = await Cart.findOne({ userId }).lean();
 
   if (!cart) {
     return await Cart.create({ userId });
   }
 
-  return cart;
+  return await removeProductBeforeOrderIfOutOfStock(cart.userId);
 };
 
 const estimateAmount = async (userId, promoCode) => {
   const cart = await Cart.findOne({ userId })
-    .populate("products.productId", "product_price")
+    .populate("products.productId", "product_price saleOff")
     .lean();
 
   if (!cart) {
@@ -182,7 +172,9 @@ const estimateAmount = async (userId, promoCode) => {
 
   const totalAmount = cart.products.reduce((total, product) => {
     if (product.is_checked) {
-      return total + product.productId.product_price * product.quantity;
+      const price =
+        product.productId.product_price * (1 - product.productId.saleOff / 100);
+      return total + price * product.quantity;
     }
     return total;
   }, 0);
@@ -191,9 +183,8 @@ const estimateAmount = async (userId, promoCode) => {
 
   if (!promoCode) {
     return {
-      totalAmount,
-      shipping: 0,
-      amountAfterUsePromo,
+      totalAmount: totalAmount.toFixed(2),
+      amountAfterUsePromo: amountAfterUsePromo.toFixed(2),
     };
   }
 
@@ -216,29 +207,32 @@ const estimateAmount = async (userId, promoCode) => {
   amountAfterUsePromo = cart.products
     .filter((product) => product.is_checked)
     .reduce((total, product) => {
+      const price =
+        product.productId.product_price * (1 - product.productId.saleOff / 100);
+
       if (existPromo.type === "fixed") {
-        if (product.productId.product_price >= existPromo.value) {
-          return total + product.productId.product_price * product.quantity;
+        if (price >= existPromo.value) {
+          return total + price * product.quantity;
         }
-        return total + (existPromo.value * product.quantity - existPromo.value);
+        return (
+          total +
+          (price * product.quantity - existPromo.value * product.quantity)
+        );
       }
-      return (
-        total +
-        product.productId.product_price *
-          product.quantity *
-          (1 - existPromo.value / 100)
-      );
+      return total + price * product.quantity * (1 - existPromo.value / 100);
     }, 0);
 
   return {
-    totalAmount,
-    shipping: 0,
-    amountAfterUsePromo,
+    totalAmount: totalAmount.toFixed(2),
+    amountAfterUsePromo: amountAfterUsePromo.toFixed(2),
   };
 };
 
 const removeProductBeforeOrderIfOutOfStock = async (userId) => {
-  const cart = await Cart.findOne({ userId });
+  const cart = await Cart.findOne({ userId }).populate(
+    "products.productId",
+    "product_name product_thumbnail product_price"
+  );
 
   if (!cart) {
     throw new ErrorResponse({
@@ -274,8 +268,6 @@ const removeProductBeforeOrderIfOutOfStock = async (userId) => {
       }
     }
   }
-
-  console.log("final: ", products);
 
   cart.products = products;
   return await cart.save();

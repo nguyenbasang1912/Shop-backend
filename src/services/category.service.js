@@ -4,6 +4,7 @@ const { cleanObject } = require("../utils");
 const deleteImage = require("../utils/upload");
 const { ErrorResponse } = require("../utils/responseHandle");
 const { StatusCodes } = require("http-status-codes");
+const { Types } = require("mongoose");
 
 const createNewCategory = async (name, image, parentId = null) => {
   console.log(image);
@@ -93,15 +94,21 @@ const deleteCategory = async (id) => {
 };
 
 const findAllParentCategories = async () => {
-  return await Category.find({ parent_category: null, is_deleted: false });
+  return await Category.find({ parent_category: null, is_deleted: false })
+    .select("category_name category_thumbnail category_thumbnail")
+    .lean();
 };
 
 const findAllCategories = async () => {
-  return await Category.find({ is_deleted: false });
+  return await Category.find({ is_deleted: false })
+    .select("category_name category_thumbnail category_thumbnail")
+    .lean();
 };
 
 const findAllChildCategoriesByParentId = async (parentId) => {
-  return await Category.find({ parent_category: parentId, is_deleted: false });
+  return await Category.find({ parent_category: parentId, is_deleted: false })
+    .select("category_name category_thumbnail category_thumbnail")
+    .lean();
 };
 
 const findAllChildCategories = async () => {
@@ -109,13 +116,14 @@ const findAllChildCategories = async () => {
     parent_category: { $ne: null },
     is_deleted: false,
   })
-    .select("category_name category_thumbnail category_thumbnail").lean()
-  return categories.map(category => {
+    .select("category_name category_thumbnail category_thumbnail")
+    .lean();
+  return categories.map((category) => {
     return {
       ...category,
-      category_thumbnail: category.category_thumbnail.url
-    }
-  })
+      category_thumbnail: category.category_thumbnail.url,
+    };
+  });
 };
 
 module.exports = {

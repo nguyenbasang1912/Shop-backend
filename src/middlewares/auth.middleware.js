@@ -7,7 +7,7 @@ const verifyUser = (req, res, next) => {
 
   if (!token) {
     throw new ErrorResponse({
-      status: 403,
+      status: 401,
       message: "No token provided",
     });
   }

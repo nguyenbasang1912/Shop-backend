@@ -9,10 +9,12 @@ const app = express();
 const port = process.env.PORT || 3000;
 const db_url = process.env.DB_URL;
 const { connect } = require("mongoose");
+const cors = require("cors");
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
+app.use(cors())
 
 app.get("/test", (req, res) => {
   res.send("Hello World!");

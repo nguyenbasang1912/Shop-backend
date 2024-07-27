@@ -10,7 +10,9 @@ const {
   findByRefreshToken,
 } = require("./keystore.service");
 const { decodedToken } = require("../utils/token");
-const { Types } = require("mongoose");
+const Cart = require("../models/cart.model");
+const Keystore = require("../models/keystore.model");
+const bcrypt = require("bcrypt");
 
 const registerUser = async (email, password, name) => {
   if (!email || !password || !name) {
@@ -91,7 +93,7 @@ const generateTokens = (userId, email, role) => {
   };
 
   const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
-    expiresIn: "5h",
+    expiresIn: "1h",
   });
 
   const refreshToken = jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
@@ -105,9 +107,12 @@ const generateTokens = (userId, email, role) => {
 };
 
 const getUserInfo = async (userId) => {
-  const user = await User.findById(userId).select(
-    "name email gender phone favorites address avatar"
-  );
+  const user = await User.findById(userId)
+    .populate(
+      "favorites",
+      "product_name product_price product_thumbnail saleOff"
+    )
+    .select("name email gender phone favorites address avatar default_address");
 
   if (!user) {
     throw new ErrorResponse({
@@ -115,8 +120,19 @@ const getUserInfo = async (userId) => {
       message: "User not found!",
     });
   }
+  const cart = await Cart.findOne({ userId: userId })
+    .populate(
+      "products.productId",
+      "product_name product_thumbnail product_price"
+    )
+    .lean();
 
-  return user;
+  return {
+    user,
+    cart: cart || {
+      products: [],
+    },
+  };
 };
 
 const renewTokens = async (refreshToken) => {
@@ -210,6 +226,126 @@ const deleteFavorite = async (userId, productId) => {
   );
 };
 
+const logoutUser = async (userId) => {
+  await Keystore.findOneAndUpdate({ userId });
+  return true;
+};
+
+const createNewAddress = async (userId, address) => {
+  const { isDefault, ...rest } = address;
+
+  if (isDefault) {
+    console.log(rest)
+    return await User.findByIdAndUpdate(
+      userId,
+      {
+        $push: {
+          address: rest,
+        },
+        default_address: rest,
+      },
+      {
+        new: true,
+      }
+    ).select("address default_address");
+  }
+
+  return await User.findByIdAndUpdate(
+    userId,
+    {
+      $push: {
+        address: rest,
+      },
+    },
+    {
+      new: true,
+    }
+  ).select("address default_address");
+};
+
+const updateAddress = async (userId, addressId, newAddress) => {
+  const { isDefault, ...rest } = newAddress;
+
+  if (isDefault) {
+    console.log(rest)
+    return await User.findOneAndUpdate(
+      { _id: userId, "address._id": addressId },
+      {
+        $set: { "address.$": rest },
+        default_address: rest,
+      },
+      { new: true }
+    ).select("address default_address");
+  }
+
+  return await User.findOneAndUpdate(
+    { _id: userId, "address._id": addressId },
+    {
+      $set: { "address.$": rest },
+    },
+    { new: true }
+  ).select("address default_address");
+};
+
+const deleteAddress = async (userId, addressId) => {
+  const user = await User.findOne({_id: userId}).select("address default_address")
+
+  user.address = user.address.filter(address => address._id !== addressId)
+  // const user = await User.findByIdAndUpdate(
+  //   userId,
+  //   {
+  //     $pull: {
+  //       address: { _id: addressId },
+  //     },
+  //   },
+  //   {
+  //     new: true,
+  //   }
+  // ).select("address");
+  return user;
+};
+
+const editUser = async (userId, action) => {
+  const user = await User.findOne({ _id: userId });
+  if (!user) {
+    throw new ErrorResponse({ status: 404, message: "User not found" });
+  }
+
+  switch (action.type) {
+    case "gender": {
+      user.gender = action.payload;
+      await user.save();
+      return user.select("gender");
+    }
+    case "phone": {
+      user.phone = action.payload;
+      await user.save();
+      return user.select("phone");
+    }
+    case "password": {
+      const checkPassword = bcrypt.compareSync(
+        user.password,
+        action.payload.oldPassword
+      );
+      if (!checkPassword) {
+        throw new ErrorResponse({
+          status: 401,
+          message: "Invalid old password",
+        });
+      }
+
+      user.password = bcrypt.hashSync(action.payload.newPassword, 10);
+      await user.save();
+      return true;
+    }
+    default: {
+      user.avatar = action.payload;
+      await user.save();
+      return user.select("avatar");
+    }
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -217,4 +353,9 @@ module.exports = {
   renewTokens,
   updateFavorite,
   deleteFavorite,
+  logoutUser,
+  createNewAddress,
+  updateAddress,
+  deleteAddress,
+  editUser,
 };

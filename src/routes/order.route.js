@@ -4,7 +4,7 @@ const { verifyUser } = require("../middlewares/auth.middleware");
 const OrderController = require("../controllers/order.controller");
 
 router.put("/:orderId", OrderController.updateState);
-router.get("", OrderController.getAllOrders);
+router.get("/admin", OrderController.getAllOrders);
 
 router.use(verifyUser);
 router.post("", OrderController.createOrder);
