@@ -1,4 +1,3 @@
-const { urlencoded } = require("express");
 const { model, Schema } = require("mongoose");
 
 const categorySchema = new Schema({
@@ -10,7 +9,7 @@ const categorySchema = new Schema({
   category_thumbnail: {
     type: {
       public_id: String,
-      urlencoded,
+      url: String,
     },
     default: {},
   },
@@ -19,6 +18,7 @@ const categorySchema = new Schema({
     ref: "Category",
     default: null,
   },
+  is_deleted: { type: Boolean, default: false },
 });
 
 module.exports = model("Category", categorySchema);

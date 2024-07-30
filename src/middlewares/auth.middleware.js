@@ -3,11 +3,11 @@ const jwt = require("jsonwebtoken");
 const { ErrorResponse } = require("../utils/responseHandle");
 
 const verifyUser = (req, res, next) => {
-  const token = req.headers.authorization.split(" ")[1];
+  const token = req.headers?.authorization?.split(" ")[1];
 
   if (!token) {
     throw new ErrorResponse({
-      status: 403,
+      status: 401,
       message: "No token provided",
     });
   }
